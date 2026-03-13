@@ -1,0 +1,34 @@
+# Coolify Deployment Configuration
+# This file helps Coolify automatically detect and configure the service
+
+name: Call Center Backend
+icon: nextjs
+description: Next.js backend with Prisma, Socket.IO, and PostgreSQL
+
+ports:
+  - container: 3001
+    exposed: 3001
+
+build:
+  engine: docker
+  dockerfile: Dockerfile
+  context: .
+
+variables:
+  - key: NODE_ENV
+    value: production
+    editable: false
+  - key: PORT
+    value: "3001"
+    editable: false
+
+databases:
+  - name: postgresql
+    icon: postgresql
+    version: "15"
+    # Uncomment and configure if you want Coolify to manage the database
+    # included: true
+
+postDeploy: |
+  echo "Running database migrations..."
+  npx prisma migrate deploy

@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { createServer } from "node:http";
 
 import { PrismaClient } from "@prisma/client";

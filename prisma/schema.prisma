@@ -71,6 +71,22 @@ enum BroadcastAudienceType {
   GROUP
 }
 
+enum CommunicationChannel {
+  CALL
+  MESSAGE
+}
+
+enum CommunicationStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+enum AppReleasePlatform {
+  ANDROID
+  IOS
+}
+
 model User {
   id                  String              @id @default(uuid())
   fullName            String
@@ -99,6 +115,22 @@ model User {
   threadMemberships   ThreadParticipant[]
   managedGroups       RepGroup[]          @relation("GroupManager")
   groupMemberships    UserGroup[]
+  communicationSessions CommunicationSession[]
+}
+
+model AppRelease {
+  id           String             @id @default(uuid())
+  version      String
+  platform     AppReleasePlatform
+  downloadUrl  String
+  releaseNotes String?
+  isRequired   Boolean            @default(false)
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([platform, isActive, createdAt])
+  @@unique([platform, version])
 }
 
 model RepGroup {
@@ -130,8 +162,10 @@ model ActivityReport {
   id            String          @id @default(uuid())
   repId         String
   contactId     String?
+  communicationSessionId String? @unique
   activityType  String?
   incomeAmount  Int?
+  durationSeconds Int?
   contactRole   String?
   zoneName      String?
   pastorGroup   String?
@@ -148,6 +182,7 @@ model ActivityReport {
   updatedAt     DateTime        @updatedAt
   rep           User            @relation("ReportOwner", fields: [repId], references: [id], onDelete: Cascade)
   contact       Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  communicationSession CommunicationSession? @relation(fields: [communicationSessionId], references: [id], onDelete: SetNull)
   feedbackItems FeedbackItem[]
 }
 
@@ -167,7 +202,27 @@ model Contact {
   updatedAt    DateTime         @updatedAt
   rep          User             @relation(fields: [repId], references: [id], onDelete: Cascade)
   reports      ActivityReport[]
+  communicationSessions CommunicationSession[]
   feedbackItems FeedbackItem[]
+}
+
+model CommunicationSession {
+  id              String               @id @default(uuid())
+  repId           String
+  contactId       String?
+  channel         CommunicationChannel
+  status          CommunicationStatus  @default(PENDING)
+  phoneNumber     String?
+  messageBody     String?
+  startedAt       DateTime
+  endedAt         DateTime?
+  durationSeconds Int?
+  metadata        String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  rep             User                 @relation(fields: [repId], references: [id], onDelete: Cascade)
+  contact         Contact?             @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  report          ActivityReport?
 }
 
 model FeedbackItem {

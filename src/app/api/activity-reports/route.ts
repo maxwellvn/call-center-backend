@@ -8,6 +8,7 @@ import { created, ok } from "@/lib/response";
 import { runRoute } from "@/lib/route";
 import { parseJson } from "@/lib/request";
 import { emitSocketEvent } from "@/lib/socket";
+import { getCommunicationSessionStatusForReport } from "@/lib/activityCounts";
 import { activityReportSchema } from "@/lib/validators";
 
 export async function GET(request: Request) {
@@ -49,7 +50,7 @@ export async function GET(request: Request) {
         where,
         skip,
         take,
-        include: { rep: true, contact: true, feedbackItems: true },
+        include: { rep: true, contact: true, feedbackItems: true, communicationSession: true },
         orderBy: { activityDate: "desc" },
       }),
       prisma.activityReport.count({ where }),
@@ -78,8 +79,18 @@ export async function POST(request: Request) {
           },
         },
         contact: true,
+        communicationSession: true,
       },
     });
+
+    if (payload.communicationSessionId) {
+      await prisma.communicationSession.update({
+        where: { id: payload.communicationSessionId },
+        data: {
+          status: getCommunicationSessionStatusForReport(payload) ?? undefined,
+        },
+      });
+    }
 
     emitSocketEvent(
       "report.created",

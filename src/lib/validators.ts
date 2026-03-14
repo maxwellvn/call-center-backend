@@ -1,4 +1,4 @@
-import { FeedbackCategory, FeedbackStatus, GoalMetricType, GoalOwnerType, GoalStatus, GoalTimeline, ThreadType, UserRole, UserStatus } from "@prisma/client";
+import { AppReleasePlatform, FeedbackCategory, FeedbackStatus, GoalMetricType, GoalOwnerType, GoalStatus, GoalTimeline, ThreadType, UserRole, UserStatus } from "@prisma/client";
 import { z } from "zod";
 
 const uuid = z.string().uuid();
@@ -42,8 +42,10 @@ export const contactSchema = z.object({
 export const activityReportSchema = z.object({
   repId: uuid,
   contactId: uuid.optional().nullable(),
+  communicationSessionId: uuid.optional().nullable(),
   activityType: z.enum(["CALL", "MESSAGE", "INCOME"]),
   incomeAmount: z.number().int().nonnegative().optional().nullable(),
+  durationSeconds: z.number().int().nonnegative().optional().nullable(),
   contactRole: z.string().optional().nullable(),
   zoneName: z.string().min(2),
   pastorGroup: z.string().optional().nullable(),
@@ -110,9 +112,61 @@ export const messageSchema = z.object({
   body: z.string().min(1),
 });
 
+export const communicationSessionCreateSchema = z.object({
+  repId: uuid,
+  contactId: uuid.optional().nullable(),
+  channel: z.enum(["CALL", "MESSAGE"]),
+  status: z.enum(["PENDING", "COMPLETED", "CANCELED"]).optional(),
+  phoneNumber: z.string().optional().nullable(),
+  messageBody: z.string().optional().nullable(),
+  startedAt: z.string().datetime(),
+  endedAt: z.string().datetime().optional().nullable(),
+  durationSeconds: z.number().int().nonnegative().optional().nullable(),
+  metadata: z.string().optional().nullable(),
+});
+
+export const communicationSessionUpdateSchema = communicationSessionCreateSchema
+  .omit({ repId: true, channel: true, startedAt: true })
+  .extend({
+    contactId: uuid.optional().nullable(),
+    status: z.enum(["PENDING", "COMPLETED", "CANCELED"]).optional(),
+    endedAt: z.string().datetime().optional().nullable(),
+    durationSeconds: z.number().int().nonnegative().optional().nullable(),
+    messageBody: z.string().optional().nullable(),
+    phoneNumber: z.string().optional().nullable(),
+    metadata: z.string().optional().nullable(),
+  })
+  .partial();
+
 export const broadcastSchema = z.object({
   title: z.string().min(2),
   body: z.string().min(2),
   audienceType: z.enum(["ALL", "GROUP"]),
   targetGroupId: uuid.optional().nullable(),
+});
+
+export const appReleaseSchema = z.object({
+  adminKey: z.string().min(1),
+  version: z.string().min(1),
+  platform: z.nativeEnum(AppReleasePlatform),
+  downloadUrl: z.string().url(),
+  releaseNotes: z.string().optional().nullable(),
+  isRequired: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const appReleaseDeleteSchema = z.object({
+  adminKey: z.string().min(1),
+  id: uuid,
+});
+
+export const appReleaseUpdateSchema = z.object({
+  id: uuid,
+  adminKey: z.string().min(1),
+  version: z.string().min(1),
+  platform: z.nativeEnum(AppReleasePlatform),
+  downloadUrl: z.string().url(),
+  releaseNotes: z.string().optional().nullable(),
+  isRequired: z.boolean().optional(),
+  isActive: z.boolean().optional(),
 });

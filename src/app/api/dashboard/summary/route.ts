@@ -1,5 +1,6 @@
 import { UserRole } from "@prisma/client";
 
+import { isCountableActivity } from "@/lib/activityCounts";
 import { requireActor } from "@/lib/auth";
 import { actorGroupIds } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -14,9 +15,18 @@ export async function GET(request: Request) {
     const weekKey = new URL(request.url).searchParams.get("week") ?? currentWeekKey();
     const groupIds = actor.role === UserRole.ADMIN ? [] : await actorGroupIds(actor.id);
 
-    const [reportsThisWeek, openFeedback, currentScripts, goals] = await Promise.all([
-      prisma.activityReport.count({
+    const [reportItems, openFeedback, currentScripts, goals] = await Promise.all([
+      prisma.activityReport.findMany({
         where: actor.role === UserRole.REP ? { repId: actor.id } : undefined,
+        select: {
+          activityType: true,
+          outcome: true,
+          communicationSession: {
+            select: {
+              status: true,
+            },
+          },
+        },
       }),
       prisma.feedbackItem.count({
         where: {
@@ -54,6 +64,7 @@ export async function GET(request: Request) {
     ]);
 
     const enrichedGoals = await enrichGoalsWithProgress(prisma, goals);
+    const reportsThisWeek = reportItems.filter((report) => isCountableActivity(report)).length;
 
     return ok({
       actor,

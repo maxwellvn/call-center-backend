@@ -1,6 +1,7 @@
 import { type GoalMetricType, type GoalTimeline } from "@prisma/client";
 
 import { requireActor } from "@/lib/auth";
+import { isCountableActivity } from "@/lib/activityCounts";
 import { GOAL_TIMELINES, currentPeriodKey, periodRangeFromKey } from "@/lib/period";
 import { computeLeaderboard } from "@/lib/leaderboard";
 import { enrichGoalsWithProgress } from "@/lib/goals";
@@ -44,6 +45,12 @@ export async function GET(request: Request) {
           repId: true,
           activityType: true,
           incomeAmount: true,
+          outcome: true,
+          communicationSession: {
+            select: {
+              status: true,
+            },
+          },
           rep: {
             select: {
               groupMemberships: {
@@ -62,7 +69,7 @@ export async function GET(request: Request) {
       enrichedGoals,
       reports.map((report) => ({
         repId: report.repId,
-        activityType: report.activityType,
+        activityType: isCountableActivity(report) ? report.activityType : null,
         incomeAmount: report.incomeAmount,
         groupIds: report.rep.groupMemberships.map((membership) => membership.groupId),
       })),

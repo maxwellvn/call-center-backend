@@ -1,5 +1,6 @@
 import { UserRole } from "@prisma/client";
 
+import { isCountableActivity } from "@/lib/activityCounts";
 import { requireActor } from "@/lib/auth";
 import { requireRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -25,6 +26,11 @@ export async function GET(request: Request) {
       prisma.activityReport.findMany({
         include: {
           rep: true,
+          communicationSession: {
+            select: {
+              status: true,
+            },
+          },
         },
       }),
       prisma.feedbackItem.groupBy({ by: ["category"], _count: true }),
@@ -53,8 +59,8 @@ export async function GET(request: Request) {
       { target: 0, achieved: 0 },
     );
 
-    const callsLogged = reports.filter((report) => report.activityType === "CALL" || !report.activityType).length;
-    const messagesLogged = reports.filter((report) => report.activityType === "MESSAGE").length;
+    const callsLogged = reports.filter((report) => report.activityType === "CALL" && isCountableActivity(report)).length;
+    const messagesLogged = reports.filter((report) => report.activityType === "MESSAGE" && isCountableActivity(report)).length;
     const incomeLogged = reports.reduce((sum, report) => sum + (report.activityType === "INCOME" ? report.incomeAmount ?? 0 : 0), 0);
     const userStats = users.reduce(
       (acc, user) => {
@@ -118,10 +124,10 @@ export async function GET(request: Request) {
         groups: new Map(),
       };
 
-      if (report.activityType === "MESSAGE") {
+      if (report.activityType === "MESSAGE" && isCountableActivity(report)) {
         region.messagesLogged += 1;
         zone.messagesLogged += 1;
-      } else if (report.activityType === "CALL" || !report.activityType) {
+      } else if (report.activityType === "CALL" && isCountableActivity(report)) {
         region.callsLogged += 1;
         zone.callsLogged += 1;
       }

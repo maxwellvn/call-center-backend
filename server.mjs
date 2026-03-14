@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createServer } from "node:http";
 
 import { PrismaClient } from "@prisma/client";
@@ -11,6 +12,30 @@ const port = Number(process.env.PORT ?? 3001);
 const prisma = new PrismaClient({
   log: process.env.NODE_ENV === "development" ? ["query", "warn", "error"] : ["error"],
 });
+
+function isDatabaseUnavailableError(error) {
+  return (
+    error instanceof Error &&
+    error.name === "PrismaClientInitializationError" &&
+    /can't reach database server|can't connect to database server|timed out fetching a new connection/i.test(
+      error.message,
+    )
+  );
+}
+
+async function safeSocketQuery(callback) {
+  try {
+    return await callback();
+  } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      console.error("Socket event skipped because the database is unavailable", error);
+      return null;
+    }
+
+    console.error("Socket event failed", error);
+    return null;
+  }
+}
 
 const app = next({ dev, hostname: host, port });
 const handle = app.getRequestHandler();
@@ -37,10 +62,13 @@ void app.prepare().then(() => {
       socket.data.userId = userId;
       socket.join(`user:${userId}`);
 
-      const memberships = await prisma.userGroup.findMany({
-        where: { userId },
-        select: { groupId: true },
-      });
+      const memberships =
+        (await safeSocketQuery(() =>
+          prisma.userGroup.findMany({
+            where: { userId },
+            select: { groupId: true },
+          }),
+        )) ?? [];
 
       const roomGroupIds = new Set([
         ...memberships.map((membership) => membership.groupId),
@@ -62,15 +90,17 @@ void app.prepare().then(() => {
         return;
       }
 
-      const thread = await prisma.messageThread.findFirst({
-        where: {
-          id: threadId,
-          participants: {
-            some: { userId },
+      const thread = await safeSocketQuery(() =>
+        prisma.messageThread.findFirst({
+          where: {
+            id: threadId,
+            participants: {
+              some: { userId },
+            },
           },
-        },
-        select: { id: true },
-      });
+          select: { id: true },
+        }),
+      );
 
       if (!thread) {
         return;
@@ -93,15 +123,17 @@ void app.prepare().then(() => {
         return;
       }
 
-      const thread = await prisma.messageThread.findFirst({
-        where: {
-          id: threadId,
-          participants: {
-            some: { userId },
+      const thread = await safeSocketQuery(() =>
+        prisma.messageThread.findFirst({
+          where: {
+            id: threadId,
+            participants: {
+              some: { userId },
+            },
           },
-        },
-        select: { id: true },
-      });
+          select: { id: true },
+        }),
+      );
 
       if (!thread) {
         return;

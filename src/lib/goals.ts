@@ -1,5 +1,6 @@
 import { type GoalMetricType, type GoalStatus, type GoalTimeline, type Prisma } from "@prisma/client";
 
+import { isCountableActivity } from "@/lib/activityCounts";
 import { GOAL_TIMELINES, currentPeriodKey, currentPeriodKeys, periodRangeFromKey } from "@/lib/period";
 
 const GOAL_METRIC_TYPES = {
@@ -40,21 +41,33 @@ type GoalWithRelations<T extends GoalLike> = T & {
   createdBy?: unknown;
 };
 
-function reportValue(report: { activityType: string | null; incomeAmount: number | null }, metricType: GoalMetricType) {
+function reportValue(
+  report: {
+    activityType: string | null;
+    incomeAmount: number | null;
+    outcome?: string | null;
+    communicationSession?: { status?: string | null } | null;
+  },
+  metricType: GoalMetricType,
+) {
+  const normalizedActivityType = isCountableActivity(report)
+    ? report.activityType
+    : null;
+
   switch (metricType) {
     case GOAL_METRIC_TYPES.CALLS:
-      return report.activityType === "CALL" ? 1 : 0;
+      return normalizedActivityType === "CALL" ? 1 : 0;
     case GOAL_METRIC_TYPES.TEXTS:
-      return report.activityType === "MESSAGE" ? 1 : 0;
+      return normalizedActivityType === "MESSAGE" ? 1 : 0;
     case GOAL_METRIC_TYPES.INCOME:
-      return report.activityType === "INCOME" ? report.incomeAmount ?? 0 : 0;
+      return normalizedActivityType === "INCOME" ? report.incomeAmount ?? 0 : 0;
     case GOAL_METRIC_TYPES.ALL:
     default:
-      if (report.activityType === "INCOME") {
+      if (normalizedActivityType === "INCOME") {
         return report.incomeAmount ?? 0;
       }
 
-      if (report.activityType === "CALL" || report.activityType === "MESSAGE") {
+      if (normalizedActivityType === "CALL" || normalizedActivityType === "MESSAGE") {
         return 1;
       }
 
@@ -118,6 +131,12 @@ export async function enrichGoalsWithProgress<T extends GoalLike>(
       select: {
         activityType: true,
         incomeAmount: true,
+        outcome: true,
+        communicationSession: {
+          select: {
+            status: true,
+          },
+        },
       },
     });
 

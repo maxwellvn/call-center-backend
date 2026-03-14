@@ -8,6 +8,7 @@ import { ok } from "@/lib/response";
 import { runRoute } from "@/lib/route";
 import { parseJson } from "@/lib/request";
 import { emitSocketEvent } from "@/lib/socket";
+import { getCommunicationSessionStatusForReport } from "@/lib/activityCounts";
 import { activityReportSchema } from "@/lib/validators";
 
 type Context = { params: Promise<{ id: string }> };
@@ -32,6 +33,7 @@ async function findAllowedReport(actorId: string, role: UserRole, id: string) {
     include: {
       rep: true,
       contact: true,
+      communicationSession: true,
       feedbackItems: true,
     },
   });
@@ -77,9 +79,19 @@ export async function PATCH(request: Request, context: Context) {
           },
         },
         contact: true,
+        communicationSession: true,
         feedbackItems: true,
       },
     });
+
+    if (report.communicationSessionId) {
+      await prisma.communicationSession.update({
+        where: { id: report.communicationSessionId },
+        data: {
+          status: getCommunicationSessionStatusForReport(report) ?? undefined,
+        },
+      });
+    }
 
     emitSocketEvent(
       "report.updated",

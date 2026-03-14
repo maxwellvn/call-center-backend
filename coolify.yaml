@@ -6,8 +6,8 @@ icon: nextjs
 description: Next.js backend with Prisma, Socket.IO, and PostgreSQL
 
 ports:
-  - container: 3001
-    exposed: 3001
+  - container: 3000
+    exposed: 3000
 
 build:
   engine: docker

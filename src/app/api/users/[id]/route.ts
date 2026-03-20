@@ -23,6 +23,7 @@ export async function GET(request: Request, context: Context) {
         groupMemberships: {
           include: { group: true },
         },
+        managedGroups: true,
       },
     });
 
@@ -67,6 +68,7 @@ export async function PATCH(request: Request, context: Context) {
       },
       include: {
         groupMemberships: true,
+        managedGroups: true,
       },
     });
 

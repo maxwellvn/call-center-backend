@@ -147,6 +147,7 @@ export async function findOrCreateKingsChatUser(accessToken: string) {
         groupMemberships: {
           include: { group: true },
         },
+        managedGroups: true,
       },
     });
   }
@@ -169,6 +170,7 @@ export async function findOrCreateKingsChatUser(accessToken: string) {
         groupMemberships: {
           include: { group: true },
         },
+        managedGroups: true,
       },
     });
   }
@@ -196,6 +198,7 @@ export async function findOrCreateKingsChatUser(accessToken: string) {
       groupMemberships: {
         include: { group: true },
       },
+      managedGroups: true,
     },
   });
 }

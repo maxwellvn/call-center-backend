@@ -15,7 +15,13 @@ export async function GET(request: Request) {
     const to = url.searchParams.get("to");
     const region = url.searchParams.get("region");
     const zone = url.searchParams.get("zone");
+    const team = url.searchParams.get("team");
     const q = url.searchParams.get("q");
+
+    const repConditions = {
+      ...(region ? { regionName: region } : {}),
+      ...(team ? { pastorGroupName: team } : {}),
+    };
 
     const where = {
       ...(from || to
@@ -26,18 +32,12 @@ export async function GET(request: Request) {
             },
           }
         : {}),
-      ...(region
-        ? {
-            rep: {
-              regionName: region,
-            },
-          }
-        : {}),
+      ...(Object.keys(repConditions).length ? { rep: repConditions } : {}),
       ...(zone
         ? {
             OR: [
               { zoneName: zone },
-              { rep: { zoneName: zone } },
+              { rep: { ...repConditions, zoneName: zone } },
             ],
           }
         : {}),

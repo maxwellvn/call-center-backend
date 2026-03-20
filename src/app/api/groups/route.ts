@@ -13,7 +13,15 @@ export async function GET(request: Request) {
     const actor = await requireActor(request);
     requireRole(actor, [UserRole.MANAGER, UserRole.ADMIN]);
 
-    const where = actor.role === UserRole.MANAGER ? { managerId: actor.id } : {};
+    const isManagerSetupPending =
+      actor.role === UserRole.MANAGER &&
+      !actor.pastorGroupId &&
+      !actor.pastorGroupName;
+
+    const where =
+      actor.role === UserRole.MANAGER && !isManagerSetupPending
+        ? { managerId: actor.id }
+        : {};
 
     const groups = await prisma.repGroup.findMany({
       where,

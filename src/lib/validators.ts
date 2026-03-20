@@ -47,6 +47,7 @@ export const activityReportSchema = z.object({
   incomeAmount: z.number().int().nonnegative().optional().nullable(),
   durationSeconds: z.number().int().nonnegative().optional().nullable(),
   contactRole: z.string().optional().nullable(),
+  regionName: z.string().optional().nullable(),
   zoneName: z.string().min(2),
   pastorGroup: z.string().optional().nullable(),
   title: z.string().min(2),

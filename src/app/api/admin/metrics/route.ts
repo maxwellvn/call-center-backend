@@ -107,7 +107,7 @@ export async function GET(request: Request) {
     }
 
     for (const report of reports) {
-      const regionName = report.rep.regionName ?? "Unassigned";
+      const regionName = report.regionName ?? report.rep.regionName ?? "Unassigned";
       const zoneName = report.zoneName ?? report.rep.zoneName ?? "Unassigned";
       const groupName = report.pastorGroup ?? report.rep.pastorGroupName ?? "Unassigned";
       const region = regionMap.get(regionName) ?? {

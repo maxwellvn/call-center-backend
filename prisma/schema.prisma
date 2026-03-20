@@ -167,7 +167,6 @@ model ActivityReport {
   incomeAmount  Int?
   durationSeconds Int?
   contactRole   String?
-  regionName    String?
   zoneName      String?
   pastorGroup   String?
   title         String

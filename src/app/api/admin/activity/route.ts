@@ -18,25 +18,12 @@ export async function GET(request: Request) {
     const team = url.searchParams.get("team");
     const q = url.searchParams.get("q");
 
-    const reportAndConditions = [
-      ...(region
-        ? [
-            {
-              OR: [{ regionName: region }, { rep: { regionName: region } }],
-            },
-          ]
-        : []),
-      ...(team
-        ? [
-            {
-              OR: [{ pastorGroup: team }, { rep: { pastorGroupName: team } }],
-            },
-          ]
-        : []),
-    ];
+    const repConditions = {
+      ...(region ? { regionName: region } : {}),
+      ...(team ? { pastorGroupName: team } : {}),
+    };
 
     const where = {
-      ...(reportAndConditions.length ? { AND: reportAndConditions } : {}),
       ...(from || to
         ? {
             activityDate: {
@@ -45,11 +32,12 @@ export async function GET(request: Request) {
             },
           }
         : {}),
+      ...(Object.keys(repConditions).length ? { rep: repConditions } : {}),
       ...(zone
         ? {
             OR: [
               { zoneName: zone },
-              { rep: { zoneName: zone } },
+              { rep: { ...repConditions, zoneName: zone } },
             ],
           }
         : {}),
